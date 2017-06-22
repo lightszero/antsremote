@@ -132,9 +132,9 @@ namespace hhgate
                                     RIPEMD160Managed hash160 = new RIPEMD160Managed();
                                     var hash = hash160.ComputeHash(bs);
                                     StringBuilder sb2 = new StringBuilder();
-                                    foreach(var b2 in bs)
+                                    foreach(var b in hash)
                                     {
-                                        sb2.Append(b2.ToString("X02"));
+                                        sb2.Append(b.ToString("X02"));
                                     }
                                     StringBuilder sb = new StringBuilder();
                                     foreach(var b in bs)
