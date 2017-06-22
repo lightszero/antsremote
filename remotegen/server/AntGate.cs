@@ -6,6 +6,7 @@ using System;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -90,7 +91,14 @@ namespace hhgate
                             json["errors"] = errs;
                             for (var i = 0; i < r.Errors.Count; i++)
                             {
-                                errs.Add(new MyJson.JsonNode_ValueString(r.Errors[i].ErrorText + ": " + r.Errors[i].FileName + "(" + r.Errors[i].Line + ")"));
+                                MyJson.JsonNode_Object obj = new MyJson.JsonNode_Object();
+                                errs.Add(obj);
+                                var _err = r.Errors[i];
+                                obj.SetDictValue("ErrorText", _err.ErrorText);
+                                obj.SetDictValue("ErrorNumber", _err.ErrorNumber);
+                                obj.SetDictValue("IsWarning", _err.IsWarning);
+                                obj.SetDictValue("Line", _err.Line);
+                                obj.SetDictValue("Column", _err.Column);
                             }
                             await context.Response.WriteAsync(json.ToString());
                             return;
@@ -119,13 +127,21 @@ namespace hhgate
                                 {
                                     MyJson.JsonNode_Object json = new MyJson.JsonNode_Object();
                                     json["tag"] = new MyJson.JsonNode_ValueNumber(0);
+                                    RIPEMD160Managed hash160 = new RIPEMD160Managed();
+                                    var hash = hash160.ComputeHash(bs);
+                                    StringBuilder sb2 = new StringBuilder();
+                                    foreach(var b2 in bs)
+                                    {
+                                        sb2.Append(b2.ToString("X02"));
+                                    }
                                     StringBuilder sb = new StringBuilder();
                                     foreach(var b in bs)
                                     {
                                         sb.Append(b.ToString("X02"));
                                     }
-                                    json["hex"] = new MyJson.JsonNode_ValueString(sb.ToString());
-                                       
+                                    json["AVMHexString"] = new MyJson.JsonNode_ValueString(sb.ToString());
+                                    json["ScriptHash"] = new MyJson.JsonNode_ValueString(sb2.ToString());
+
                                     await context.Response.WriteAsync(json.ToString());
                                     return;
                                 }
