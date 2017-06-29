@@ -36,6 +36,7 @@
 window.onload = () => {
 
     var csharpcode = [
+        'using System.Numerics;',
         'using AntShares.SmartContract.Framework;',
         'using AntShares.SmartContract.Framework.Services.AntShares;',
         'using AntShares.SmartContract.Framework.Services.System;',
@@ -88,8 +89,8 @@ window.onload = () => {
             btnChange.innerText = "->java";
         }
     }
-        var address = 'http://40.125.201.127:8080/_api/';
-        //var address = 'http://localhost:8080/_api/';
+        //var address = 'http://40.125.201.127:8080/_api/';
+        var address = 'http://localhost:8080/_api/';
         {//test page
             var xhr: XMLHttpRequest = new XMLHttpRequest();
             xhr.open("GET", address + 'help');

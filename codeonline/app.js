@@ -37,6 +37,7 @@ var localsave;
 })(localsave || (localsave = {}));
 window.onload = function () {
     var csharpcode = [
+        'using System.Numerics;',
         'using AntShares.SmartContract.Framework;',
         'using AntShares.SmartContract.Framework.Services.AntShares;',
         'using AntShares.SmartContract.Framework.Services.System;',
@@ -87,8 +88,8 @@ window.onload = function () {
             btnChange.innerText = "->java";
         }
     };
-    var address = 'http://40.125.201.127:8080/_api/';
-    //var address = 'http://localhost:8080/_api/';
+    //var address = 'http://40.125.201.127:8080/_api/';
+    var address = 'http://localhost:8080/_api/';
     {
         var xhr = new XMLHttpRequest();
         xhr.open("GET", address + 'help');
