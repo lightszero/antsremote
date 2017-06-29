@@ -10,7 +10,7 @@
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>
-    <TypeScriptToolsVersion>2.2</TypeScriptToolsVersion>
+    <TypeScriptToolsVersion>2.3</TypeScriptToolsVersion>
     <UseIISExpress>true</UseIISExpress>
     <IISExpressSSLPort />
     <IISExpressAnonymousAuthentication />
@@ -25,7 +25,6 @@
     <Content Include="app.css" />
     <Content Include="as.png" />
     <Content Include="index.html" />
-    <Content Include="index2.html" />
     <Content Include="min\vs\base\worker\workerMain.js" />
     <Content Include="min\vs\basic-languages\src\bat.js" />
     <Content Include="min\vs\basic-languages\src\coffee.js" />

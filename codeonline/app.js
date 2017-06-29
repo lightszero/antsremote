@@ -36,26 +36,62 @@ var localsave;
     localsave.file_str2blob = file_str2blob;
 })(localsave || (localsave = {}));
 window.onload = function () {
+    var csharpcode = [
+        'using AntShares.SmartContract.Framework;',
+        'using AntShares.SmartContract.Framework.Services.AntShares;',
+        'using AntShares.SmartContract.Framework.Services.System;',
+        '',
+        'class A : FunctionCode',
+        '{',
+        '    public static int Main() ',
+        '    {',
+        '        return 1;',
+        '    }',
+        '}',
+    ].join('\n');
+    var javacode = [
+        'package hi;',
+        'import AntShares.SmartContract.Framework.FunctionCode;',
+        'public class go extends FunctionCode {',
+        '    public static int Main() ',
+        '    {',
+        '        return 1;',
+        '    }',
+        '}',
+    ].join('\n');
     var editor = monaco.editor.create(document.getElementById('container'), {
-        value: [
-            'using AntShares.SmartContract.Framework;',
-            'using AntShares.SmartContract.Framework.Services.AntShares;',
-            'using AntShares.SmartContract.Framework.Services.System;',
-            '',
-            'class A : FunctionCode',
-            '{',
-            '    public static int Main() ',
-            '    {',
-            '        return 1;',
-            '    }',
-            '}',
-        ].join('\n'),
+        value: csharpcode,
         language: 'csharp',
         theme: 'vs-dark'
     });
+    var btnChange = document.getElementById('change');
+    btnChange.onclick = function (ev) {
+        var c = document.getElementById('container');
+        while (c.childElementCount > 0) {
+            c.removeChild(c.children[0]);
+        }
+        if (btnChange.innerText == "->java") {
+            editor = monaco.editor.create(document.getElementById('container'), {
+                value: javacode,
+                language: 'java',
+                theme: 'vs-dark'
+            });
+            btnChange.innerText = "->c#";
+        }
+        else {
+            editor = monaco.editor.create(document.getElementById('container'), {
+                value: csharpcode,
+                language: 'csharp',
+                theme: 'vs-dark'
+            });
+            btnChange.innerText = "->java";
+        }
+    };
+    var address = 'http://40.125.201.127:8080/_api/';
+    //var address = 'http://localhost:8080/_api/';
     {
         var xhr = new XMLHttpRequest();
-        xhr.open("GET", 'http://40.125.201.127:8080/_api/help');
+        xhr.open("GET", address + 'help');
         xhr.onreadystatechange = function (ev) {
             if (xhr.readyState == 4) {
                 var txt = document.getElementById('info');
@@ -67,7 +103,7 @@ window.onload = function () {
     var btn = document.getElementById('doit');
     btn.onclick = function (ev) {
         var xhr = new XMLHttpRequest();
-        xhr.open("POST", 'http://40.125.201.127:8080/_api/parse');
+        xhr.open("POST", address + 'parse');
         xhr.onreadystatechange = function (ev) {
             if (xhr.readyState == 4) {
                 var txt = document.getElementById('info');
@@ -75,7 +111,12 @@ window.onload = function () {
             }
         };
         var fdata = new FormData();
-        fdata.append("language", "csharp");
+        if (btnChange.innerText == "->java") {
+            fdata.append("language", "csharp");
+        }
+        else {
+            fdata.append("language", "java");
+        }
         fdata.append("file", localsave.file_str2blob(editor.getValue()));
         xhr.send(fdata);
     };

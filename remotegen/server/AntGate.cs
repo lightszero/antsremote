@@ -1,4 +1,5 @@
 ﻿using AntShares.Compiler;
+using AntShares.Compiler.JVM;
 using AntShares.Compiler.MSIL;
 using Microsoft.Owin;
 using remotegen;
@@ -6,7 +7,6 @@ using System;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -50,9 +50,7 @@ namespace hhgate
             MyJson.JsonNode_Object json = new MyJson.JsonNode_Object();
             json["tag"] = new MyJson.JsonNode_ValueNumber(0);
             MyJson.JsonNode_Array maps = new MyJson.JsonNode_Array();
-            json.SetDictValue("msg", "AntShares Http Gate By lights.");
-            json.SetDictValue("ver", "0.01");
-            json.SetDictValue("date", "20170622");
+            json.SetDictValue("msg", "AntShares Http Gate By lights 0.01");
             await context.Response.WriteAsync(json.ToString());
             return;
         }
@@ -71,120 +69,18 @@ namespace hhgate
 
             if (formdata.mapParams.ContainsKey("language") && formdata.mapFiles.ContainsKey("file"))
             {
-                try
+                var l = formdata.mapParams["language"].ToLower();
+                if (l == "csharp")
+                    await parseCSharp(context, formdata);
+                else if (l == "java")
+                    await parseJAVA(context, formdata);
+                else
                 {
-                    var file = formdata.mapFiles["file"];
-                    var code = System.Text.Encoding.UTF8.GetString(file);
-
-                    //编译
-                    List<string> codes = new List<string>();
-                    codes.Add(code);
-                    CompilerResults r = null;
-
-                    try
-                    {
-                        r = gencode.GenCode(codes, true);
-                        if (r.Errors.Count > 0)
-                        {
-                            MyJson.JsonNode_Object json = new MyJson.JsonNode_Object();
-                            json["tag"] = new MyJson.JsonNode_ValueNumber(-3);
-                            json["msg"] = new MyJson.JsonNode_ValueString("compile fail.");
-                            MyJson.JsonNode_Array errs = new MyJson.JsonNode_Array();
-                            json["errors"] = errs;
-                            for (var i = 0; i < r.Errors.Count; i++)
-                            {
-                                MyJson.JsonNode_Object obj = new MyJson.JsonNode_Object();
-                                errs.Add(obj);
-                                var _err = r.Errors[i];
-                                obj.SetDictValue("ErrorText", _err.ErrorText);
-                                obj.SetDictValue("ErrorNumber", _err.ErrorNumber);
-                                obj.SetDictValue("IsWarning", _err.IsWarning);
-                                obj.SetDictValue("Line", _err.Line);
-                                obj.SetDictValue("Column", _err.Column);
-                            }
-                            await context.Response.WriteAsync(json.ToString());
-                            return;
-                        }
-                    }
-                    catch (Exception err)
-                    {
-                        MyJson.JsonNode_Object json = new MyJson.JsonNode_Object();
-                        json["tag"] = new MyJson.JsonNode_ValueNumber(-2);
-                        json["msg"] = new MyJson.JsonNode_ValueString("unknown fail on comp.");
-                        json["err"] = new MyJson.JsonNode_ValueString(err.ToString());
-                        await context.Response.WriteAsync(json.ToString());
-                        return;
-                    }
-                    //conv
-                    try
-                    {
-                        var st = System.IO.File.OpenRead(r.PathToAssembly);
-                        using (st)
-                        {
-                            var logjson = new Log2Json();
-                            var bs = Converter.Convert(st, logjson);
-                            if (bs != null)
-                            {
-
-                                {
-                                    MyJson.JsonNode_Object json = new MyJson.JsonNode_Object();
-                                    json["tag"] = new MyJson.JsonNode_ValueNumber(0);
-                                    RIPEMD160Managed hash160 = new RIPEMD160Managed();
-                                    var hash = hash160.ComputeHash(bs);
-                                    StringBuilder sb2 = new StringBuilder();
-                                    foreach(var b in hash)
-                                    {
-                                        sb2.Append(b.ToString("X02"));
-                                    }
-                                    StringBuilder sb = new StringBuilder();
-                                    foreach(var b in bs)
-                                    {
-                                        sb.Append(b.ToString("X02"));
-                                    }
-                                    json["AVMHexString"] = new MyJson.JsonNode_ValueString(sb.ToString());
-                                    json["ScriptHash"] = new MyJson.JsonNode_ValueString(sb2.ToString());
-
-                                    await context.Response.WriteAsync(json.ToString());
-                                    return;
-                                }
-                            }
-                            else
-                            {
-
-                                {
-                                    MyJson.JsonNode_Object json = new MyJson.JsonNode_Object();
-                                    json["tag"] = new MyJson.JsonNode_ValueNumber(-4);
-                                    json["msg"] = new MyJson.JsonNode_ValueString("compile fail.");
-                                    json["info"]= logjson.array;
-                                    await context.Response.WriteAsync(json.ToString());
-                                    return;
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception err)
-                    {
-                        MyJson.JsonNode_Object json = new MyJson.JsonNode_Object();
-                        json["tag"] = new MyJson.JsonNode_ValueNumber(-2);
-                        json["msg"] = new MyJson.JsonNode_ValueString("unknown fail on conv.");
-                        json["err"] = new MyJson.JsonNode_ValueString(err.ToString());
-                        await context.Response.WriteAsync(json.ToString());
-                        return;
-                    }
-
+                    MyJson.JsonNode_Object json = new MyJson.JsonNode_Object();
+                    json["tag"] = new MyJson.JsonNode_ValueNumber(-5);
+                    json["msg"] = new MyJson.JsonNode_ValueString("fail language.");
+                    await context.Response.WriteAsync(json.ToString());
                 }
-                catch
-                {
-                    {
-                        MyJson.JsonNode_Object json = new MyJson.JsonNode_Object();
-                        json["tag"] = new MyJson.JsonNode_ValueNumber(-2);
-                        json["msg"] = new MyJson.JsonNode_ValueString("parse fail.");
-                        await context.Response.WriteAsync(json.ToString());
-                        return;
-                    }
-                }
-
-
             }
             else
             {
@@ -197,6 +93,325 @@ namespace hhgate
 
         }
 
+        private static async Task parseCSharp(IOwinContext context, FormData formdata)
+        {
+            try
+            {
+                var file = formdata.mapFiles["file"];
+                var code = System.Text.Encoding.UTF8.GetString(file);
+
+                //编译
+                List<string> codes = new List<string>();
+                codes.Add(code);
+                CompilerResults r = null;
+
+                try
+                {
+                    r = gencode.GenCode(codes, true);
+                    if (r.Errors.Count > 0)
+                    {
+                        MyJson.JsonNode_Object json = new MyJson.JsonNode_Object();
+                        json["tag"] = new MyJson.JsonNode_ValueNumber(-3);
+                        json["msg"] = new MyJson.JsonNode_ValueString("compile fail.");
+                        MyJson.JsonNode_Array errs = new MyJson.JsonNode_Array();
+                        json["errors"] = errs;
+                        for (var i = 0; i < r.Errors.Count; i++)
+                        {
+                            MyJson.JsonNode_Object errtag = new MyJson.JsonNode_Object();
+                            errs.Add(errtag);
+                            errtag.SetDictValue("msg", r.Errors[i].ErrorText);
+                            errtag.SetDictValue("line", r.Errors[i].Line);
+                            errtag.SetDictValue("col", r.Errors[i].Column);
+                            errtag.SetDictValue("tag", r.Errors[i].IsWarning ? "警告" : "错误");
+                        }
+                        await context.Response.WriteAsync(json.ToString());
+                        return;
+                    }
+                }
+                catch (Exception err)
+                {
+                    MyJson.JsonNode_Object json = new MyJson.JsonNode_Object();
+                    json["tag"] = new MyJson.JsonNode_ValueNumber(-2);
+                    json["msg"] = new MyJson.JsonNode_ValueString("unknown fail on comp.");
+                    json["err"] = new MyJson.JsonNode_ValueString(err.ToString());
+                    await context.Response.WriteAsync(json.ToString());
+                    return;
+                }
+                //conv
+                try
+                {
+                    var st = System.IO.File.OpenRead(r.PathToAssembly);
+                    using (st)
+                    {
+                        var logjson = new Log2Json();
+                        var bs = AntShares.Compiler.MSIL.Converter.Convert(st, logjson);
+                        if (bs != null)
+                        {
+
+                            {
+                                MyJson.JsonNode_Object json = new MyJson.JsonNode_Object();
+                                json["tag"] = new MyJson.JsonNode_ValueNumber(0);
+                                StringBuilder sb = new StringBuilder();
+                                StringBuilder sb2 = new StringBuilder();
+                                var hash = System.Security.Cryptography.SHA256.Create();
+                                var hashbs = hash.ComputeHash(bs);
+                                foreach (var b in bs)
+                                {
+                                    sb.Append(b.ToString("X02"));
+                                }
+                                foreach (var b in hashbs)
+                                {
+                                    sb2.Append(b.ToString("X02"));
+                                }
+                                json["hex"] = new MyJson.JsonNode_ValueString(sb.ToString());
+                                json["hash"] = new MyJson.JsonNode_ValueString(sb2.ToString());
+                                await context.Response.WriteAsync(json.ToString());
+                                return;
+                            }
+                        }
+                        else
+                        {
+
+                            {
+                                MyJson.JsonNode_Object json = new MyJson.JsonNode_Object();
+                                json["tag"] = new MyJson.JsonNode_ValueNumber(-4);
+                                json["msg"] = new MyJson.JsonNode_ValueString("compile fail.");
+                                json["info"] = logjson.array;
+                                await context.Response.WriteAsync(json.ToString());
+                                return;
+                            }
+                        }
+                    }
+                }
+                catch (Exception err)
+                {
+                    MyJson.JsonNode_Object json = new MyJson.JsonNode_Object();
+                    json["tag"] = new MyJson.JsonNode_ValueNumber(-2);
+                    json["msg"] = new MyJson.JsonNode_ValueString("unknown fail on conv.");
+                    json["err"] = new MyJson.JsonNode_ValueString(err.ToString());
+                    await context.Response.WriteAsync(json.ToString());
+                    return;
+                }
+
+            }
+            catch
+            {
+                {
+                    MyJson.JsonNode_Object json = new MyJson.JsonNode_Object();
+                    json["tag"] = new MyJson.JsonNode_ValueNumber(-2);
+                    json["msg"] = new MyJson.JsonNode_ValueString("parse fail.");
+                    await context.Response.WriteAsync(json.ToString());
+                    return;
+                }
+            }
+        }
+
+
+        private static async Task parseJAVA(IOwinContext context, FormData formdata)
+        {
+            try
+            {
+                string dictname = null;
+                string classname = null;
+                var file = formdata.mapFiles["file"];
+                var code = System.Text.Encoding.UTF8.GetString(file);
+
+                //准备临时目录
+                {
+                    Random i = new Random();
+                    var num = i.Next();
+
+                    while (System.IO.Directory.Exists("tmp_" + num.ToString("X08")))
+                    {
+                        num++;
+                    }
+                    dictname = "tmp_" + num.ToString("X08");
+
+                    var fc = code.IndexOf("class");
+                    int ibegin = -1;
+
+                    for (int ib = fc + 6; ib < fc + 100; ib++)
+                    {
+                        if (ibegin < 0)
+                        {
+                            if (code[ib] == ' ') continue;
+                            else
+                            {
+                                ibegin = ib;
+                            }
+                        }
+                        else
+                        {
+                            if (code[ib] == ' ' || code[ib] == '}')
+                            {
+                                classname = code.Substring(ibegin, ib - ibegin);
+                                break;
+                            }
+                        }
+                    }
+                }
+                System.IO.Directory.CreateDirectory(dictname);
+                string filename = System.IO.Path.Combine(dictname, classname + ".java");
+                System.IO.File.WriteAllText(filename, code);
+                string jarfile = "AntShares.SmartContract.Framework.jar";
+                System.IO.File.Copy(jarfile, System.IO.Path.Combine(dictname, jarfile));
+
+                //编译
+                try
+                {
+                    System.Diagnostics.ProcessStartInfo info = new System.Diagnostics.ProcessStartInfo();
+                    info.FileName = "cmd.exe";
+                    info.UseShellExecute = false;
+                    info.RedirectStandardOutput = true;
+                    info.RedirectStandardInput = true;
+                    info.RedirectStandardError = true;
+                    info.WorkingDirectory = dictname;
+                    var proc = System.Diagnostics.Process.Start(info);
+                    proc.StandardInput.WriteLine("javac -cp " + jarfile + " " + classname + ".java");
+                    proc.StandardInput.WriteLine("exit");
+
+
+                    string back = proc.StandardError.ReadToEnd();
+                    string inerror = "";
+                    int line = -1;
+                    string tag = "";
+                    List<string> outline = new List<string>();
+                    List<int> errorline = new List<int>();
+                    List<string> errorTag = new List<string>();
+                    string[] lines = back.Split(new string[] { "\r\n" }, StringSplitOptions.None);
+                    for(var i=0;i<lines.Length;i++)
+                    {
+                        if(inerror=="")
+                        {
+                            var mm = lines[i].Split(':');
+                            if(mm.Length>3)
+                            {
+                                line = int.Parse(mm[1]);
+                                inerror += mm[3];
+                                tag = mm[2];
+                            }
+
+                        }
+                        else
+                        {
+                            if(lines[i].IndexOf("^")>=0)
+                            {
+                                outline.Add(inerror);
+                                errorline.Add(line);
+                                errorTag.Add(tag);
+                                inerror = "";
+                            }
+                            else
+                            {
+                                inerror += "\n" + lines[i];
+                            }
+                        }
+                    }
+
+                    if (outline.Count==0)
+                    {
+                        //succ
+                    }
+                    else
+                    {
+                        MyJson.JsonNode_Object json = new MyJson.JsonNode_Object();
+                        json["tag"] = new MyJson.JsonNode_ValueNumber(-3);
+                        json["msg"] = new MyJson.JsonNode_ValueString("compile fail.");
+
+                        MyJson.JsonNode_Array errs = new MyJson.JsonNode_Array();
+                        json["errors"] = errs;
+                        for (var i = 0; i < outline.Count; i++)
+                        {
+                            MyJson.JsonNode_Object errtag = new MyJson.JsonNode_Object();
+                            errs.Add(errtag);
+                            errtag.SetDictValue("msg", outline[i]);
+                            errtag.SetDictValue("line", errorline[i]);
+                            errtag.SetDictValue("tag",errorTag[i]);
+                            //errtag.SetDictValue("col", r.Errors[i].Column);
+                        }
+                        await context.Response.WriteAsync(json.ToString());
+                        return;
+                    }
+                }
+                catch (Exception err)
+                {
+                    MyJson.JsonNode_Object json = new MyJson.JsonNode_Object();
+                    json["tag"] = new MyJson.JsonNode_ValueNumber(-2);
+                    json["msg"] = new MyJson.JsonNode_ValueString("unknown fail on comp.");
+                    json["err"] = new MyJson.JsonNode_ValueString(err.ToString());
+                    await context.Response.WriteAsync(json.ToString());
+                    return;
+                }
+
+                //conv
+                try
+                {
+                    JavaModule module = new JavaModule();
+                    module.LoadJar(jarfile);
+                    module.LoadClass(System.IO.Path.Combine(dictname, classname + ".class"));
+                    var logjson = new Log2Json();
+                    var conv = new AntShares.Compiler.JVM.ModuleConverter(logjson);
+                    var bs = conv.Convert(module).Build();
+                    if (bs != null)
+                    {
+                        MyJson.JsonNode_Object json = new MyJson.JsonNode_Object();
+                        json["tag"] = new MyJson.JsonNode_ValueNumber(0);
+                        StringBuilder sb = new StringBuilder();
+                        StringBuilder sb2 = new StringBuilder();
+                        var hash = System.Security.Cryptography.SHA256.Create();
+                        var hashbs = hash.ComputeHash(bs);
+                        foreach (var b in bs)
+                        {
+                            sb.Append(b.ToString("X02"));
+                        }
+                        foreach (var b in hashbs)
+                        {
+                            sb2.Append(b.ToString("X02"));
+                        }
+                        json["hex"] = new MyJson.JsonNode_ValueString(sb.ToString());
+                        json["hash"] = new MyJson.JsonNode_ValueString(sb2.ToString());
+
+                        await context.Response.WriteAsync(json.ToString());
+                        return;
+                    }
+
+
+                    else
+                    {
+
+                        {
+                            MyJson.JsonNode_Object json = new MyJson.JsonNode_Object();
+                            json["tag"] = new MyJson.JsonNode_ValueNumber(-4);
+                            json["msg"] = new MyJson.JsonNode_ValueString("compile fail.");
+                            json["info"] = logjson.array;
+                            await context.Response.WriteAsync(json.ToString());
+                            return;
+                        }
+                    }
+
+                }
+                catch (Exception err)
+                {
+                    MyJson.JsonNode_Object json = new MyJson.JsonNode_Object();
+                    json["tag"] = new MyJson.JsonNode_ValueNumber(-2);
+                    json["msg"] = new MyJson.JsonNode_ValueString("unknown fail on conv.");
+                    json["err"] = new MyJson.JsonNode_ValueString(err.ToString());
+                    await context.Response.WriteAsync(json.ToString());
+                    return;
+                }
+
+            }
+            catch
+            {
+                {
+                    MyJson.JsonNode_Object json = new MyJson.JsonNode_Object();
+                    json["tag"] = new MyJson.JsonNode_ValueNumber(-2);
+                    json["msg"] = new MyJson.JsonNode_ValueString("parse fail.");
+                    await context.Response.WriteAsync(json.ToString());
+                    return;
+                }
+            }
+        }
     }
 
 }

@@ -35,54 +35,96 @@
 }
 window.onload = () => {
 
+    var csharpcode = [
+        'using AntShares.SmartContract.Framework;',
+        'using AntShares.SmartContract.Framework.Services.AntShares;',
+        'using AntShares.SmartContract.Framework.Services.System;',
+        '',
+        'class A : FunctionCode',
+        '{',
+        '    public static int Main() ',
+        '    {',
+        '        return 1;',
+        '    }',
+        '}',
+    ].join('\n');
+    var javacode = [
+        'package hi;',
+        'import AntShares.SmartContract.Framework.FunctionCode;',
+        'public class go extends FunctionCode {',
+        '    public static int Main() ',
+        '    {',
+        '        return 1;',
+        '    }',
+        '}',
+    ].join('\n');
     var editor = monaco.editor.create(document.getElementById('container'), {
-        value: [
-            'using AntShares.SmartContract.Framework;',
-            'using AntShares.SmartContract.Framework.Services.AntShares;',
-            'using AntShares.SmartContract.Framework.Services.System;',
-            '',
-            'class A : FunctionCode',
-            '{',
-            '    public static int Main() ',
-	        '    {',
-            '        return 1;',
-            '    }',
-            '}',
-
-        ].join('\n'),
+        value: csharpcode,
         language: 'csharp',
         theme: 'vs-dark'
     });
-
-    {//test page
-        var xhr: XMLHttpRequest = new XMLHttpRequest();
-        xhr.open("GET", 'http://40.125.201.127:8080/_api/help');
-        xhr.onreadystatechange = (ev) => {
-
-            if (xhr.readyState == 4) {
-                var txt = document.getElementById('info') as HTMLSpanElement;
-                txt.innerText = xhr.responseText;
-            }
+    var btnChange = document.getElementById('change') as HTMLButtonElement;
+    btnChange.onclick = (ev) => {
+        var c = document.getElementById('container') as HTMLDivElement;
+        while (c.childElementCount > 0) {
+            c.removeChild(c.children[0]);
         }
-        xhr.send();
+        if (btnChange.innerText == "->java") {
+            editor = monaco.editor.create(document.getElementById('container'), {
+                value: javacode,
+                language: 'java',
+                theme: 'vs-dark'
+
+            });
+            btnChange.innerText = "->c#";
+        }
+        else
+        {
+            editor = monaco.editor.create(document.getElementById('container'), {
+                value: csharpcode,
+                language: 'csharp',
+                theme: 'vs-dark'
+            });
+            btnChange.innerText = "->java";
+        }
     }
+        var address = 'http://40.125.201.127:8080/_api/';
+        //var address = 'http://localhost:8080/_api/';
+        {//test page
+            var xhr: XMLHttpRequest = new XMLHttpRequest();
+            xhr.open("GET", address + 'help');
+            xhr.onreadystatechange = (ev) => {
 
-    var btn = document.getElementById('doit') as HTMLButtonElement;
-    btn.onclick = (ev) => {
-        var xhr: XMLHttpRequest = new XMLHttpRequest();
-        xhr.open("POST", 'http://40.125.201.127:8080/_api/parse');
-        xhr.onreadystatechange = (ev) => {
-
-            if (xhr.readyState == 4) {
-                var txt = document.getElementById('info') as HTMLSpanElement;
-                txt.innerText = xhr.responseText;
+                if (xhr.readyState == 4) {
+                    var txt = document.getElementById('info') as HTMLSpanElement;
+                    txt.innerText = xhr.responseText;
+                }
             }
+            xhr.send();
         }
 
-        var fdata = new FormData();
-        fdata.append("language", "csharp");
-        fdata.append("file", localsave.file_str2blob(editor.getValue()));
+        var btn = document.getElementById('doit') as HTMLButtonElement;
+        btn.onclick = (ev) => {
+            var xhr: XMLHttpRequest = new XMLHttpRequest();
+            xhr.open("POST", address + 'parse');
+            xhr.onreadystatechange = (ev) => {
 
-        xhr.send(fdata);
-    }
-};
+                if (xhr.readyState == 4) {
+                    var txt = document.getElementById('info') as HTMLSpanElement;
+                    txt.innerText = xhr.responseText;
+                }
+            }
+
+            var fdata = new FormData();
+            if (btnChange.innerText == "->java") {
+                fdata.append("language", "csharp");
+            }
+            else
+            {
+                fdata.append("language", "java");
+            }
+            fdata.append("file", localsave.file_str2blob(editor.getValue()));
+
+            xhr.send(fdata);
+        }
+    };
